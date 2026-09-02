@@ -1,77 +1,80 @@
-## go-sqlcipher
+# go-sqlcipher for Mira
 
-[![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/mutecomm/go-sqlcipher) [![CI](https://github.com/mutecomm/go-sqlcipher/workflows/CI/badge.svg)](https://github.com/mutecomm/go-sqlcipher/actions)
+This is Mira's maintained fork of `mutecomm/go-sqlcipher`: a self-contained
+`database/sql` driver that bundles SQLCipher rather than relying on a system
+SQLite library.
 
-### Description
+## What this fork changes
 
-Self-contained Go sqlite3 driver with an AES-256 encrypted sqlite3 database
-conforming to the built-in database/sql interface. It is based on:
+`v4.17.0-mira.2` updates the bundled database engine from SQLCipher 4.4.2 to
+SQLCipher 4.17.0 (SQLite 3.53.3). It also:
 
-- Go sqlite3 driver: https://github.com/mattn/go-sqlite3
-- SQLite extension with AES-256 codec: https://github.com/sqlcipher/sqlcipher
-- SQLCipher 4.17.0 with SQLite 3.53.3, using SQLCipher's OpenSSL provider
+- uses SQLCipher's maintained OpenSSL provider instead of the unmaintained
+  bundled LibTomCrypt integration;
+- defines SQLCipher's required initialization and shutdown hooks;
+- supports FTS5 when the consuming program is built with `-tags fts5` (or
+  `-tags sqlite_fts5`);
+- quotes passphrases safely before issuing `PRAGMA key`.
 
-SQLite itself is part of SQLCipher.
+The package links against OpenSSL's `libcrypto`. Build hosts therefore need the
+OpenSSL development headers and library (for example, `libssl-dev` on Debian or
+Ubuntu).
 
-### Incompatibilities of SQLCipher
+## Installation
 
-The version tags of go-sqlcipher are the same as for SQLCipher.
+```sh
+go get github.com/benoitpetit/go-sqlcipher/v4@v4.17.0-mira.2
+```
 
-**SQLCipher 4.x is incompatible with SQLCipher 3.x!**
+Import the driver for its `database/sql` registration:
 
-go-sqlcipher does not implement any migration strategies at the moment.
-So if you upgrade a major version of go-sqlcipher, you yourself are responsible
-to upgrade existing database files.
+```go
+import _ "github.com/benoitpetit/go-sqlcipher/v4"
+```
 
-See [migrating databases](https://www.zetetic.net/sqlcipher/sqlcipher-api/#Migrating_Databases) for details.
+Build applications that need full-text search with:
 
-To upgrade your Go code to the 4.x series, change the import path to
+```sh
+go build -tags fts5 ./...
+```
 
-    "github.com/mutecomm/go-sqlcipher/v4"
+## Opening an encrypted database
 
-### Installation
+Pass the key as `_pragma_key` in the DSN. Always URL-escape a passphrase;
+this preserves spaces, quotes, and other special characters.
 
-This package can be installed with the go get command:
+```go
+key := url.QueryEscape("correct horse battery staple")
+db, err := sql.Open("sqlite3", "mira.db?_pragma_key="+key+"&_pragma_cipher_page_size=4096")
+if err != nil {
+	log.Fatal(err)
+}
+defer db.Close()
+```
 
-    go get github.com/mutecomm/go-sqlcipher
-
-
-### Documentation
-
-To create and open encrypted database files use the following DSN parameters:
+For a 32-byte hexadecimal key:
 
 ```go
 key := "2DD29CA851E7B56E4697B0E1F08507293D761A05CE4D1B628663F411A8086D99"
-dbname := fmt.Sprintf("db?_pragma_key=x'%s'&_pragma_cipher_page_size=4096", key)
-db, _ := sql.Open("sqlite3", dbname)
+db, err := sql.Open("sqlite3", "mira.db?_pragma_key=x'"+key+"'")
 ```
 
-`_pragma_key` is the hex encoded 32 byte key (must be 64 characters long).
-`_pragma_cipher_page_size` is the page size of the encrypted database (set if
-you want a different value than the default size).
+`sqlite3.IsEncrypted(path)` reports whether a file appears encrypted. It does
+not validate that a supplied key is correct; issue a query after opening to do
+that.
 
-```go
-key := url.QueryEscape("secret")
-dbname := fmt.Sprintf("db?_pragma_key=%s&_pragma_cipher_page_size=4096", key)
-db, _ := sql.Open("sqlite3", dbname)
-```
+## Compatibility and migration
 
-This uses a passphrase directly as `_pragma_key` with the key derivation function in
-SQLCipher. Do not forget the `url.QueryEscape()` call in your code!
+SQLCipher 4 databases remain in the SQLCipher 4 format. This fork tests opening
+an existing SQLCipher 4 fixture, but every production database should be backed
+up and tested in a staging environment before upgrading. SQLCipher 3 and 4 are
+not format-compatible; follow SQLCipher's [migration guide](https://www.zetetic.net/sqlcipher/sqlcipher-api/#Migrating_Databases)
+for that transition.
 
-See also [PRAGMA key](https://www.zetetic.net/sqlcipher/sqlcipher-api/#PRAGMA_key).
+The upstream APIs come from [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+and [SQLCipher](https://github.com/sqlcipher/sqlcipher). This fork is scoped to
+Mira's SQLCipher build and maintenance needs.
 
-API documentation can be found here:
-http://godoc.org/github.com/mutecomm/go-sqlcipher
+## License
 
-Use the function
-[sqlite3.IsEncrypted()](https://godoc.org/github.com/mutecomm/go-sqlcipher#IsEncrypted)
-to check whether a database file is encrypted or not.
-
-Examples can be found under the `./_example` directory
-
-
-### License
-
-The code of the originating packages is covered by their respective licenses.
-See [LICENSE](LICENSE) file for details.
+The originating packages retain their respective licenses. See [LICENSE](LICENSE).
