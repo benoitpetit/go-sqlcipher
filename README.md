@@ -9,7 +9,7 @@ conforming to the built-in database/sql interface. It is based on:
 
 - Go sqlite3 driver: https://github.com/mattn/go-sqlite3
 - SQLite extension with AES-256 codec: https://github.com/sqlcipher/sqlcipher
-- AES-256 implementation from: https://github.com/libtom/libtomcrypt
+- SQLCipher 4.17.0 with SQLite 3.53.3, using SQLCipher's OpenSSL provider
 
 SQLite itself is part of SQLCipher.
 

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
+	sqlite3 "github.com/benoitpetit/go-sqlcipher/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,6 +97,12 @@ func TestSQLCipherParallelSelect(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSQLCipherVersion(t *testing.T) {
+	var version string
+	require.NoError(t, db.QueryRow("PRAGMA cipher_version;").Scan(&version))
+	assert.Equal(t, "4.17.0 community", version)
 }
 
 func TestSQLCipherIsEncryptedFalse(t *testing.T) {
