@@ -142,6 +142,28 @@ func TestSQLCipherIsEncryptedTrue(t *testing.T) {
 	}
 }
 
+func TestSQLCipherKeyWithQuotes(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", testDir)
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpdir)
+
+	key := "apostrophe ' and quote \\\""
+	dbname := filepath.Join(tmpdir, "quoted-key.sqlite")
+	dsn := dbname + "?_pragma_key=" + url.QueryEscape(key)
+
+	db, err := sql.Open("sqlite3", dsn)
+	require.NoError(t, err)
+	_, err = db.Exec(tables)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	db, err = sql.Open("sqlite3", dsn)
+	require.NoError(t, err)
+	defer db.Close()
+	_, err = db.Exec("SELECT count(*) FROM sqlite_master;")
+	require.NoError(t, err)
+}
+
 func TestSQLCipher3DB(t *testing.T) {
 	dbname := filepath.Join("testdata", "sqlcipher3.sqlite3")
 	dbnameWithDSN := dbname + "?_pragma_key=passphrase&_pragma_cipher_page_size=4096"
