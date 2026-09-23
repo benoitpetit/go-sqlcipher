@@ -75,6 +75,10 @@ The upstream APIs come from [mattn/go-sqlite3](https://github.com/mattn/go-sqlit
 and [SQLCipher](https://github.com/sqlcipher/sqlcipher). This fork is scoped to
 Mira's SQLCipher build and maintenance needs.
 
+The Mira fork is maintained by Benoît Petit, Développeur —
+https://devbyben.fr. This attribution does not replace or modify any
+upstream copyright notice or license.
+
 ## License
 
 The originating packages retain their respective licenses. See [LICENSE](LICENSE).
